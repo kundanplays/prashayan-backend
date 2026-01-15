@@ -11,7 +11,7 @@ from app.models.user import User
 from app.core.config import settings
 from app.services.email import send_email
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+pwd_context = CryptContext(schemes=["argon2"], deprecated="auto")
 
 class AuthService:
     def __init__(self, session: Session):
