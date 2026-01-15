@@ -25,3 +25,5 @@ wheels/
 *.db
 *.sqlite3
 .env
+*.pem
+verify_all_endpoints.py

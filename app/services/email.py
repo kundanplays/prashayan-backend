@@ -12,8 +12,12 @@ def send_email(to_email: str, subject: str, body: str):
 
         msg.attach(MIMEText(body, 'html'))
 
-        server = smtplib.SMTP(settings.MAIL_SERVER, settings.MAIL_PORT)
-        server.starttls()
+        if settings.MAIL_SSL:
+            server = smtplib.SMTP_SSL(settings.MAIL_SERVER, settings.MAIL_PORT)
+        else:
+            server = smtplib.SMTP(settings.MAIL_SERVER, settings.MAIL_PORT)
+            server.starttls()
+            
         server.login(settings.MAIL_USERNAME, settings.MAIL_PASSWORD)
         text = msg.as_string()
         server.sendmail(settings.MAIL_FROM, to_email, text)

@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>Payment Refunded - Prashayan</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Playfair+Display:wght@400;600;700&display=swap"
+        rel="stylesheet">
+</head>
+
+<body style="margin: 0; padding: 0; font-family: 'Outfit', Arial, sans-serif; background-color: #F4F9F4;">
+    <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%"
+        style="background-color: #F4F9F4;">
+        <tr>
+            <td style="padding: 40px 20px;">
+                <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="600"
+                    style="margin: 0 auto; background-color: #ffffff; border-radius: 16px; box-shadow: 0 4px 20px rgba(46, 92, 85, 0.08);">
+
+                    <!-- Header with Logo -->
+                    <tr>
+                        <td
+                            style="padding: 40px 40px 20px; text-align: center; background: linear-gradient(135deg, #2E5C55 0%, #3E7A70 100%); border-radius: 16px 16px 0 0;">
+                            <img src="cid:logo" alt="Prashayan"
+                                style="width: 180px; height: auto; display: block; margin: 0 auto;">
+                        </td>
+                    </tr>
+
+                    <!-- Refund Success Message -->
+                    <tr>
+                        <td style="padding: 40px 40px 20px; text-align: center;">
+                            <!-- Refund Icon -->
+                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="80" height="80"
+                                style="margin: 0 auto 24px;">
+                                <tr>
+                                    <td align="center" valign="middle"
+                                        style="width: 80px; height: 80px; background: linear-gradient(135deg, #D4AF37 0%, #E5C55E 100%); border-radius: 50%; color: #ffffff; font-size: 40px; line-height: 80px; font-weight: bold;">
+                                        ₹
+                                    </td>
+                                </tr>
+                            </table>
+                            <h1
+                                style="margin: 0 0 16px; font-family: 'Playfair Display', Georgia, serif; font-size: 32px; font-weight: 700; color: #2E5C55; line-height: 1.3;">
+                                Refund Processed
+                            </h1>
+                            <p style="margin: 0 0 8px; font-size: 16px; color: #5A7872; line-height: 1.6;">
+                                Hello <strong>{{user_name}}</strong>, your refund for order #<strong
+                                    style="color: #D4AF37;">{{order_id}}</strong> has been processed successfully.
+                            </p>
+                        </td>
+                    </tr>
+
+                    <!-- Refund Details Table -->
+                    <tr>
+                        <td style="padding: 0 40px 32px;">
+                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%"
+                                style="background-color: #F4F9F4; border-radius: 12px; padding: 24px;">
+                                <tr>
+                                    <td style="padding-bottom: 12px;">
+                                        <p style="margin: 0; font-size: 14px; color: #8A9A95;">Refund Amount</p>
+                                        <p style="margin: 4px 0 0; font-size: 24px; font-weight: 700; color: #D4AF37;">
+                                            ₹{{refund_amount}}</p>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="padding-bottom: 12px; border-top: 1px solid #E1EBE1; padding-top: 12px;">
+                                        <p style="margin: 0; font-size: 14px; color: #8A9A95;">Transaction ID</p>
+                                        <p style="margin: 4px 0 0; font-size: 15px; font-weight: 600; color: #2E5C55;">
+                                            {{transaction_id}}</p>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="border-top: 1px solid #E1EBE1; padding-top: 12px;">
+                                        <p style="margin: 0; font-size: 14px; color: #8A9A95;">Refund Method</p>
+                                        <p style="margin: 4px 0 0; font-size: 15px; font-weight: 600; color: #2E5C55;">
+                                            Original Payment Method</p>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+
+                    <!-- Timeline Info -->
+                    <tr>
+                        <td style="padding: 0 40px 32px;">
+                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%"
+                                style="background: linear-gradient(135deg, #F4F9F4 0%, #E8F2E8 100%); border-left: 4px solid #3E7A70; border-radius: 8px; padding: 20px;">
+                                <tr>
+                                    <td>
+                                        <p style="margin: 0; font-size: 13px; color: #5A7872; line-height: 1.6;">
+                                            While we've processed the refund on our end, it may take <strong>5-7
+                                                business days</strong> for the amount to show up in your account,
+                                            depending on your bank's processing time.
+                                        </p>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+
+                    <!-- Divider -->
+                    <tr>
+                        <td style="padding: 0 40px;">
+                            <div
+                                style="height: 1px; background: linear-gradient(90deg, transparent, #E1EBE1, transparent);">
+                            </div>
+                        </td>
+                    </tr>
+
+                    <!-- Footer -->
+                    <tr>
+                        <td style="padding: 32px 40px; text-align: center;">
+                            <p style="margin: 0 0 16px; font-size: 14px; color: #5A7872;">
+                                If you have any questions, feel free to reach out.<br>
+                                <a href="mailto:support@prashayan.com"
+                                    style="color: #D4AF37; text-decoration: none; font-weight: 600;">support@prashayan.com</a>
+                            </p>
+
+                            <p style="margin: 20px 0 0; font-size: 12px; color: #8A9A95;">
+                                © 2026 Prashayan. All rights reserved.<br>
+                                <span style="color: #D4AF37;">Timeless healing for the modern soul.</span>
+                            </p>
+                        </td>
+                    </tr>
+
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+
+</html>

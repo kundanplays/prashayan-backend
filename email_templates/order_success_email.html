@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>Order Confirmed - Prashayan</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Playfair+Display:wght@400;600;700&display=swap"
+        rel="stylesheet">
+</head>
+
+<body style="margin: 0; padding: 0; font-family: 'Outfit', Arial, sans-serif; background-color: #F4F9F4;">
+    <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%"
+        style="background-color: #F4F9F4;">
+        <tr>
+            <td style="padding: 40px 20px;">
+                <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="600"
+                    style="margin: 0 auto; background-color: #ffffff; border-radius: 16px; box-shadow: 0 4px 20px rgba(46, 92, 85, 0.08);">
+
+                    <!-- Header with Logo -->
+                    <tr>
+                        <td
+                            style="padding: 40px 40px 20px; text-align: center; background: linear-gradient(135deg, #2E5C55 0%, #3E7A70 100%); border-radius: 16px 16px 0 0;">
+                            <img src="cid:logo" alt="Prashayan"
+                                style="width: 180px; height: auto; display: block; margin: 0 auto;">
+                        </td>
+                    </tr>
+
+                    <!-- Success Message -->
+                    <tr>
+                        <td style="padding: 40px 40px 20px; text-align: center;">
+                            <!-- Success Icon -->
+                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="80" height="80"
+                                style="margin: 0 auto 24px;">
+                                <tr>
+                                    <td align="center" valign="middle"
+                                        style="width: 80px; height: 80px; background: linear-gradient(135deg, #D4AF37 0%, #E5C55E 100%); border-radius: 50%; color: #ffffff; font-size: 48px; line-height: 80px; font-weight: bold;">
+                                        ✓
+                                    </td>
+                                </tr>
+                            </table>
+                            <h1
+                                style="margin: 0 0 16px; font-family: 'Playfair Display', Georgia, serif; font-size: 36px; font-weight: 700; color: #2E5C55; line-height: 1.3;">
+                                Order Confirmed!
+                            </h1>
+                            <p style="margin: 0 0 8px; font-size: 16px; color: #5A7872; line-height: 1.6;">
+                                Thank you for your order, <strong>{{user_name}}</strong>!
+                            </p>
+                            <p style="margin: 0; font-size: 14px; color: #8A9A95;">
+                                Order #<strong style="color: #D4AF37;">{{order_id}}</strong> • {{order_date}}
+                            </p>
+                        </td>
+                    </tr>
+
+                    <!-- Order Summary -->
+                    <tr>
+                        <td style="padding: 0 40px 32px;">
+                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%"
+                                style="background-color: #F4F9F4; border-radius: 12px; overflow: hidden;">
+                                <tr>
+                                    <td style="padding: 20px; border-bottom: 2px solid #E1EBE1;">
+                                        <h2 style="margin: 0; font-size: 18px; font-weight: 600; color: #2E5C55;">
+                                            Order Summary
+                                        </h2>
+                                    </td>
+                                </tr>
+
+                                <!-- Order Items (Dynamic) -->
+                                <tr>
+                                    <td style="padding: 20px;">
+                                        {{order_items}}
+                                        <!-- Example item structure:
+                                        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin-bottom: 16px;">
+                                            <tr>
+                                                <td style="width: 70%; padding: 8px 0;">
+                                                    <p style="margin: 0 0 4px; font-size: 15px; font-weight: 600; color: #2E5C55;">Product Name</p>
+                                                    <p style="margin: 0; font-size: 13px; color: #8A9A95;">Quantity: 2</p>
+                                                </td>
+                                                <td style="width: 30%; text-align: right; padding: 8px 0;">
+                                                    <p style="margin: 0; font-size: 15px; font-weight: 600; color: #2E5C55;">₹999.00</p>
+                                                </td>
+                                            </tr>
+                                        </table>
+                                        -->
+                                    </td>
+                                </tr>
+
+                                <!-- Divider -->
+                                <tr>
+                                    <td style="padding: 0 20px;">
+                                        <div style="height: 1px; background-color: #E1EBE1;"></div>
+                                    </td>
+                                </tr>
+
+                                <!-- Subtotal, Shipping, Discount -->
+                                <tr>
+                                    <td style="padding: 16px 20px 8px;">
+                                        <table role="presentation" cellspacing="0" cellpadding="0" border="0"
+                                            width="100%">
+                                            <tr>
+                                                <td style="padding: 4px 0; font-size: 14px; color: #5A7872;">Subtotal
+                                                </td>
+                                                <td
+                                                    style="padding: 4px 0; text-align: right; font-size: 14px; color: #2E5C55;">
+                                                    ₹{{subtotal}}</td>
+                                            </tr>
+                                            <tr>
+                                                <td style="padding: 4px 0; font-size: 14px; color: #5A7872;">Shipping
+                                                </td>
+                                                <td
+                                                    style="padding: 4px 0; text-align: right; font-size: 14px; color: #2E5C55;">
+                                                    ₹{{shipping}}</td>
+                                            </tr>
+                                            {{#if discount}}
+                                            <tr>
+                                                <td style="padding: 4px 0; font-size: 14px; color: #AA8C2C;">Discount
+                                                    ({{discount_code}})</td>
+                                                <td
+                                                    style="padding: 4px 0; text-align: right; font-size: 14px; color: #AA8C2C;">
+                                                    -₹{{discount}}</td>
+                                            </tr>
+                                            {{/if}}
+                                        </table>
+                                    </td>
+                                </tr>
+
+                                <!-- Total -->
+                                <tr>
+                                    <td
+                                        style="padding: 16px 20px; background: linear-gradient(135deg, #FAF3E0 0%, #F5E6C8 100%); border-top: 2px solid #D4AF37;">
+                                        <table role="presentation" cellspacing="0" cellpadding="0" border="0"
+                                            width="100%">
+                                            <tr>
+                                                <td style="font-size: 18px; font-weight: 700; color: #2E5C55;">Total
+                                                </td>
+                                                <td
+                                                    style="text-align: right; font-size: 24px; font-weight: 700; color: #D4AF37;">
+                                                    ₹{{total_amount}}</td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+
+                    <!-- Delivery Address -->
+                    <tr>
+                        <td style="padding: 0 40px 32px;">
+                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%"
+                                style="background-color: #F4F9F4; border-radius: 12px; padding: 20px;">
+                                <tr>
+                                    <td>
+                                        <h3
+                                            style="margin: 0 0 12px; font-size: 16px; font-weight: 600; color: #2E5C55;">
+                                            📦 Delivery Address
+                                        </h3>
+                                        <p style="margin: 0; font-size: 14px; color: #5A7872; line-height: 1.6;">
+                                            {{delivery_address}}
+                                        </p>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+
+                    <!-- Track Order Button -->
+                    <tr>
+                        <td style="padding: 0 40px 32px; text-align: center;">
+                            <a href="{{tracking_url}}"
+                                style="display: inline-block; background: linear-gradient(135deg, #2E5C55 0%, #3E7A70 100%); color: #ffffff; text-decoration: none; padding: 16px 48px; border-radius: 50px; font-size: 16px; font-weight: 600; letter-spacing: 0.5px; box-shadow: 0 4px 12px rgba(46, 92, 85, 0.3);">
+                                Track Your Order
+                            </a>
+                        </td>
+                    </tr>
+
+                    <!-- Ayurvedic Message -->
+                    <tr>
+                        <td style="padding: 0 40px 32px;">
+                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%"
+                                style="background: linear-gradient(135deg, #F4F9F4 0%, #E8F2E8 100%); border-left: 4px solid #D4AF37; border-radius: 8px; padding: 20px;">
+                                <tr>
+                                    <td>
+                                        <p style="margin: 0 0 8px; font-size: 15px; font-weight: 600; color: #2E5C55;">
+                                            🌿 A Note on Ayurvedic Wellness
+                                        </p>
+                                        <p
+                                            style="margin: 0; font-size: 13px; color: #5A7872; line-height: 1.6; font-style: italic;">
+                                            "Ayurveda is not just medicine; it is the science of life." Your order
+                                            contains pure, lab-tested herbs sourced from the Himalayas. For best
+                                            results, follow the recommended dosage and embrace a balanced lifestyle.
+                                        </p>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+
+                    <!-- Divider -->
+                    <tr>
+                        <td style="padding: 0 40px;">
+                            <div
+                                style="height: 1px; background: linear-gradient(90deg, transparent, #E1EBE1, transparent);">
+                            </div>
+                        </td>
+                    </tr>
+
+                    <!-- Footer -->
+                    <tr>
+                        <td style="padding: 32px 40px; text-align: center;">
+                            <p style="margin: 0 0 16px; font-size: 14px; color: #5A7872;">
+                                Questions about your order?<br>
+                                <a href="mailto:support@prashayan.com"
+                                    style="color: #D4AF37; text-decoration: none; font-weight: 600;">support@prashayan.com</a>
+                                • <a href="tel:+911234567890"
+                                    style="color: #D4AF37; text-decoration: none; font-weight: 600;">+91 123 456
+                                    7890</a>
+                            </p>
+                            <p style="margin: 0 0 20px; font-size: 13px; color: #8A9A95;">
+                                Vikas Nagar, Gali no 2, Sonipat<br>
+                                Haryana, India - 131001
+                            </p>
+
+                            <!-- Social Links -->
+                            <table role="presentation" cellspacing="0" cellpadding="0" border="0"
+                                style="margin: 0 auto;">
+                                <tr>
+                                    <td style="padding: 0 8px;">
+                                        <a href="https://instagram.com/prashayan"
+                                            style="text-decoration: none; color: #2E5C55; font-size: 12px;">Instagram</a>
+                                    </td>
+                                    <td style="padding: 0 8px; color: #E1EBE1;">|</td>
+                                    <td style="padding: 0 8px;">
+                                        <a href="https://facebook.com/prashayan"
+                                            style="text-decoration: none; color: #2E5C55; font-size: 12px;">Facebook</a>
+                                    </td>
+                                    <td style="padding: 0 8px; color: #E1EBE1;">|</td>
+                                    <td style="padding: 0 8px;">
+                                        <a href="https://twitter.com/prashayan"
+                                            style="text-decoration: none; color: #2E5C55; font-size: 12px;">Twitter</a>
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <p style="margin: 20px 0 0; font-size: 12px; color: #8A9A95;">
+                                © 2026 Prashayan. All rights reserved.<br>
+                                <span style="color: #D4AF37;">Timeless healing for the modern soul.</span>
+                            </p>
+                        </td>
+                    </tr>
+
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+
+</html>

@@ -13,6 +13,8 @@ from app.services.auth import AuthService
 router = APIRouter()
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/v1/auth/token")
+oauth2_scheme_optional = OAuth2PasswordBearer(tokenUrl="api/v1/auth/token", auto_error=False)
+
 
 class Token(BaseModel):
     access_token: str
@@ -116,16 +118,16 @@ async def get_current_user(token: str = Depends(oauth2_scheme), session: Session
     except JWTError:
         raise credentials_exception
     
-    user = session.get(User, username) # Note: This might need adjustment if looking up by email
-    # Current User model ID is int. Logic in original code query user by email.
-    # Refactoring getting user logic:
+    # Lookup user by email (stored in 'sub')
     user = session.exec(select(User).where(User.email == username)).first()
     
     if user is None:
         raise credentials_exception
     return user
 
-async def get_current_user_optional(token: str = Depends(oauth2_scheme), session: Session = Depends(get_session)) -> Optional[User]:
+async def get_current_user_optional(token: str = Depends(oauth2_scheme_optional), session: Session = Depends(get_session)) -> Optional[User]:
+    if not token:
+        return None
     try:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
         username: str = payload.get("sub")
