@@ -1,6 +1,8 @@
 from sqlmodel import Session, select
 from app.db.session import engine, create_db_and_tables
 from app.models.product import Product
+from app.models.user import User
+from app.core.security import get_password_hash
 
 def seed_products():
     print("Creating database and tables...")
