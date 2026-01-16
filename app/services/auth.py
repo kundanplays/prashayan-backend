@@ -34,58 +34,116 @@ class AuthService:
         return encoded_jwt
 
     def get_user_by_email(self, email: str) -> Optional[User]:
-        return self.session.exec(select(User).where(User.email == email)).first()
+        # Use ilike for case-insensitive lookup
+        return self.session.exec(select(User).where(User.email == email)).first() or \
+               self.session.exec(select(User).where(User.email.ilike(email))).first()
 
-    def register_user(self, email: str, password: str, phone: str = None) -> User:
-        if self.get_user_by_email(email):
+    def register_user(self, email: str, password: str, name: str = None, phone: str = None) -> User:
+        user = self.get_user_by_email(email)
+
+        if user and user.is_verified:
             raise HTTPException(status_code=400, detail="Email already registered")
-        
-        user = User(
-            email=email,
-            password_hash=self.get_password_hash(password),
-            phone=phone,
-            is_active=True,
-            is_verified=False 
-        )
+
+        if user:
+            # Update existing temporary user (from OTP generation)
+            user.name = name
+            user.password_hash = self.get_password_hash(password)
+            user.phone = phone
+            user.is_verified = True
+            user.otp_code = None  # Clear OTP after successful registration
+            user.otp_expires_at = None
+        else:
+            # Create new user (fallback, shouldn't happen in normal flow)
+            user = User(
+                email=email,
+                name=name,
+                password_hash=self.get_password_hash(password),
+                phone=phone,
+                is_active=True,
+                is_verified=True
+            )
+
         self.session.add(user)
         self.session.commit()
         self.session.refresh(user)
         return user
 
-    def authenticate_user(self, email: str, password: str) -> Optional[User]:
+    def authenticate_user(self, email: str, password: str) -> tuple[Optional[User], Optional[str]]:
         user = self.get_user_by_email(email)
         if not user:
-            return None
+            return None, "User not found. Please check your email or register a new account."
         if not self.verify_password(password, user.password_hash):
-            return None
-        return user
+            return None, "Incorrect password. Please try again."
+        return user, None
 
-    def generate_otp(self, user: User):
+    def generate_otp_for_email(self, email: str) -> str:
+        """Generate OTP for email (creates temporary user if needed)"""
+        user = self.get_user_by_email(email)
+
+        # If user exists and is already verified (fully registered), prevent re-registration
+        if user and user.is_verified and user.password_hash:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Email already registered. Please sign in instead."
+            )
+
+        # If user doesn't exist, create a temporary unverified user
+        if not user:
+            user = User(
+                email=email,
+                password_hash="",  # Temporary, will be set during registration
+                is_active=True,
+                is_verified=False,
+                is_guest=False
+            )
+            self.session.add(user)
+            self.session.commit()
+            self.session.refresh(user)
+
+        # Generate OTP
         otp = "".join(random.choices(string.digits, k=6))
         user.otp_code = otp
         user.otp_expires_at = datetime.utcnow() + timedelta(minutes=10)
         self.session.add(user)
         self.session.commit()
-        
-        # Send OTP via Email
-        send_email(user.email, "Your Verification OTP", f"Your OTP is: <b>{otp}</b>. It expires in 10 minutes.")
+
+        # Send OTP via Email using template
+        self.send_otp_email(user.email, user.name or "Valued Customer", otp)
         return otp
+
+    def send_otp_email(self, email: str, user_name: str, otp_code: str):
+        """Send OTP email using HTML template"""
+        try:
+            # Read the template
+            template_path = "email_templates/otp_email.html"
+            with open(template_path, 'r', encoding='utf-8') as f:
+                html_template = f.read()
+
+            # Replace placeholders
+            html_content = html_template.replace('{{user_name}}', user_name)
+            html_content = html_content.replace('{{otp_code}}', otp_code)
+
+            # Send the email
+            send_email(email, "Verify Your Email - Prashayan", html_content)
+        except Exception as e:
+            print(f"Failed to send OTP email template: {e}")
+            # Fallback to simple email
+            send_email(email, "Your Verification OTP", f"Your OTP is: <b>{otp_code}</b>. It expires in 10 minutes.")
 
     def verify_otp(self, email: str, otp: str) -> bool:
         user = self.get_user_by_email(email)
         if not user or not user.otp_code:
             return False
-            
+
         if user.otp_code != otp:
             return False
-            
+
         if datetime.utcnow() > user.otp_expires_at:
             return False
-            
-        # Verify success
+
+        # Verify success - mark as verified but don't clear OTP yet
+        # OTP will be cleared during registration
         user.is_verified = True
-        user.otp_code = None
-        user.otp_expires_at = None
         self.session.add(user)
         self.session.commit()
         return True

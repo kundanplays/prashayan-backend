@@ -7,7 +7,7 @@ from app.core.config import settings
 from app.db.session import get_session
 from sqlmodel import Session
 from app.models.order import Order
-from app.services.email import send_order_confirmation, send_status_update
+from app.services.email import send_order_success_email, format_address_for_email, format_order_items_for_email
 from app.models.user import User
 
 router = APIRouter()
@@ -60,9 +60,51 @@ async def payment_webhook(request: Request, x_razorpay_signature: str = Header(N
                 session.add(order)
                 session.commit()
                 
-                # Fetch user email to send confirmation
+                # Fetch user and order details for comprehensive email
                 user = session.get(User, order.user_id)
                 if user:
-                    send_order_confirmation(user.email, order.id, order.total_amount)
+                    # Get order items and product details
+                    from app.models.order import OrderItem
+                    from app.models.product import Product
+                    from sqlmodel import select
+
+                    order_items = session.exec(
+                        select(OrderItem).where(OrderItem.order_id == order.id)
+                    ).all()
+
+                    product_details = []
+                    order_items_for_email = []
+                    for item in order_items:
+                        product = session.get(Product, item.product_id)
+                        if product:
+                            product_details.append({
+                                'id': product.id,
+                                'name': product.name,
+                                'selling_price': getattr(product, 'selling_price', None) or product.mrp,
+                                'mrp': product.mrp
+                            })
+                            order_items_for_email.append({
+                                'product_id': item.product_id,
+                                'quantity': item.quantity
+                            })
+
+                    # Format delivery address
+                    delivery_address = format_address_for_email(order.shipping_address)
+
+                    # Send comprehensive order success email
+                    order_date = order.created_at.strftime("%B %d, %Y at %I:%M %p")
+                    send_order_success_email(
+                        to_email=order.shipping_address.get('email'),
+                        user_name=user.name,
+                        order_id=order.id,
+                        order_date=order_date,
+                        order_items=order_items_for_email,
+                        product_details=product_details,
+                        subtotal=order.total_amount,
+                        shipping=0.0,  # You can modify this based on your shipping logic
+                        total_amount=order.total_amount,
+                        delivery_address=delivery_address,
+                        payment_method="online"  # Since this is from payment webhook
+                    )
 
     return {"status": "ok"}

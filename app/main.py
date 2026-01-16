@@ -30,7 +30,7 @@ app = FastAPI(
 def read_root():
     return {"message": "Welcome to Prashayan API. Visit /docs for Swagger UI."}
 
-from app.routers import auth, products, orders, chatbot, payment, users, upload
+from app.routers import auth, products, orders, chatbot, payment, users, upload, admin, cart, homepage
 
 app.include_router(auth.router, prefix="/api/v1/auth", tags=["auth"])
 app.include_router(products.router, prefix="/api/v1/products", tags=["products"])
@@ -39,6 +39,9 @@ app.include_router(payment.router, prefix="/api/v1/payment", tags=["payment"])
 app.include_router(chatbot.router, prefix="/api/v1/chat", tags=["chatbot"])
 app.include_router(users.router, prefix="/api/v1/users", tags=["users"])
 app.include_router(upload.router, prefix="/api/v1/upload", tags=["upload"])
+app.include_router(cart.router, prefix="/api/v1/cart", tags=["cart"])
+app.include_router(homepage.router, prefix="/api/v1/homepage", tags=["homepage"])
+app.include_router(admin.router, prefix="/api/v1/admin", tags=["admin"])
 
 # Add CORS
 from fastapi.middleware.cors import CORSMiddleware

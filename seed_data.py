@@ -138,5 +138,34 @@ def seed_products():
         session.commit()
         print(f"Successfully seeded {len(products)} products!")
 
+def seed_users():
+    print("Seeding test user...")
+    with Session(engine) as session:
+        # Check if user already exists
+        statement = select(User).where(User.email == "aditi.sharma@example.com")
+        existing_user = session.exec(statement).first()
+        if existing_user:
+            print("Test user already exists. Skipping.")
+            return
+
+        user = User(
+            name="Aditi Sharma",
+            email="aditi.sharma@example.com",
+            phone="+91 98765 43210",
+            password_hash=get_password_hash("password"),
+            address={
+                "address": "Vikas Nagar, Gali no 2",
+                "city": "Sonipat",
+                "state": "Haryana",
+                "pincode": "131001"
+            },
+            is_verified=True,
+            is_active=True
+        )
+        session.add(user)
+        session.commit()
+        print("Test user seeded successfully!")
+
 if __name__ == "__main__":
     seed_products()
+    seed_users()

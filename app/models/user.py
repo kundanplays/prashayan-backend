@@ -12,7 +12,7 @@ class User(SQLModel, table=True):
     name: Optional[str] = None
     email: str = Field(unique=True, index=True)
     phone: Optional[str] = Field(default=None, index=True)
-    password_hash: str
+    password_hash: Optional[str] = Field(default=None)
     
     # Address stored as JSON dict with keys: address, city, state, pincode
     address: Optional[dict] = Field(default=None, sa_column=Column(JSON))

@@ -3,6 +3,7 @@ from datetime import datetime
 from sqlmodel import Field, Relationship, SQLModel, Column
 from sqlalchemy import JSON
 from enum import Enum
+from pydantic import computed_field
 
 class PaymentType(str, Enum):
     COD = "cod"
@@ -31,6 +32,17 @@ class OrderItem(SQLModel, table=True):
 class Order(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     user_id: int = Field(foreign_key="user.id")
+
+    @computed_field
+    @property
+    def order_id(self) -> Optional[int]:
+        return self.id
+
+    @computed_field
+    @property
+    def order_number(self) -> Optional[str]:
+        """Formatted order number for display (e.g., PR000014)"""
+        return f"PR{self.id:06d}" if self.id else None
     
     # Order Details
     total_amount: float

@@ -23,18 +23,22 @@ class Token(BaseModel):
 class UserCreate(BaseModel):
     email: str
     password: str
-    phone: str = None
+    name: Optional[str] = None
+    phone: Optional[str] = None
 
 class OTPVerify(BaseModel):
     email: str
-    otp: str
+    code: str
+
+class OTPGenerate(BaseModel):
+    email: str
 
 def get_auth_service(session: Session = Depends(get_session)) -> AuthService:
     return AuthService(session)
 
 @router.post("/register", response_model=User)
 def register(user_in: UserCreate, service: AuthService = Depends(get_auth_service)):
-    return service.register_user(user_in.email, user_in.password, user_in.phone)
+    return service.register_user(user_in.email, user_in.password, name=user_in.name, phone=user_in.phone)
 
 from fastapi import Request
 from app.services.history import HistoryService
@@ -45,15 +49,15 @@ def get_history_service(session: Session = Depends(get_session)) -> HistoryServi
 @router.post("/token", response_model=Token)
 def login_for_access_token(
     request: Request,
-    form_data: OAuth2PasswordRequestForm = Depends(), 
+    form_data: OAuth2PasswordRequestForm = Depends(),
     service: AuthService = Depends(get_auth_service),
     history_service: HistoryService = Depends(get_history_service)
 ):
-    user = service.authenticate_user(form_data.username, form_data.password)
+    user, error_message = service.authenticate_user(form_data.username, form_data.password)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect username or password",
+            detail=error_message,
             headers={"WWW-Authenticate": "Bearer"},
         )
     
@@ -70,16 +74,13 @@ def login_for_access_token(
     return {"access_token": access_token_expires, "token_type": "bearer"}
 
 @router.post("/otp/generate")
-def generate_otp(email: str, service: AuthService = Depends(get_auth_service)):
-    user = service.get_user_by_email(email)
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-    service.generate_otp(user)
+def generate_otp(data: OTPGenerate, service: AuthService = Depends(get_auth_service)):
+    service.generate_otp_for_email(data.email)
     return {"message": "OTP sent"}
 
 @router.post("/otp/verify")
 def verify_otp(data: OTPVerify, service: AuthService = Depends(get_auth_service)):
-    is_valid = service.verify_otp(data.email, data.otp)
+    is_valid = service.verify_otp(data.email, data.code)
     if not is_valid:
         raise HTTPException(status_code=400, detail="Invalid or expired OTP")
     return {"message": "User verified successfully"}
@@ -119,7 +120,9 @@ async def get_current_user(token: str = Depends(oauth2_scheme), session: Session
         raise credentials_exception
     
     # Lookup user by email (stored in 'sub')
-    user = session.exec(select(User).where(User.email == username)).first()
+    # Use ilike for robustness
+    user = session.exec(select(User).where(User.email == username)).first() or \
+           session.exec(select(User).where(User.email.ilike(username))).first()
     
     if user is None:
         raise credentials_exception

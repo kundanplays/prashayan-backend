@@ -17,24 +17,32 @@ def get_history_service(session: Session = Depends(get_session)) -> HistoryServi
 @router.get("/", response_model=List[Product])
 def read_products(
     q: Optional[str] = None,
+    limit: Optional[int] = None,
+    offset: Optional[int] = 0,
     current_user: Optional[User] = Depends(get_current_user_optional), # Optional auth for tracking
     session: Session = Depends(get_session),
     history_service: HistoryService = Depends(get_history_service)
 ):
+    query = select(Product)
+
     if q:
         # Log Search
         user_id = current_user.id if current_user else None
         history_service.log_search(query=q, user_id=user_id)
-        
+
         # Filter Products
-        return session.exec(select(Product).where(
+        query = query.where(
             or_(
                 Product.name.ilike(f"%{q}%"),
                 Product.description.ilike(f"%{q}%")
             )
-        )).all()
-        
-    return session.exec(select(Product)).all()
+        )
+
+    # Apply pagination
+    if limit:
+        query = query.offset(offset or 0).limit(limit)
+
+    return session.exec(query).all()
 
 @router.get("/{slug}", response_model=Product)
 def read_product(slug: str, session: Session = Depends(get_session)):

@@ -19,6 +19,7 @@ class Product(SQLModel, table=True):
     # Detailed Product Info
     ingredients: Optional[str] = None
     description: str
+    category: Optional[str] = Field(default=None, index=True)
     benefits: Optional[str] = None
     how_to_use: Optional[str] = None
     
@@ -46,6 +47,8 @@ class Product(SQLModel, table=True):
             return None
         if self.thumbnail_url.startswith(("http://", "https://")):
             return self.thumbnail_url
+        if self.thumbnail_url.startswith("/"):
+             return self.thumbnail_url
         # Force S3 URL by prepending base URL, stripping leading slash
         key = self.thumbnail_url.lstrip("/")
         return f"{settings.S3_BASE_URL}/{key}"
@@ -56,6 +59,8 @@ class Product(SQLModel, table=True):
         urls = []
         for url in self.image_urls:
             if url.startswith(("http://", "https://")):
+                urls.append(url)
+            elif url.startswith("/"):
                 urls.append(url)
             else:
                 # Force S3 URL
