@@ -17,10 +17,10 @@ class Settings(BaseSettings):
     MAIL_USERNAME: str = Field("orders@prashayan.com", validation_alias="MAIL_USERNAME")
     MAIL_PASSWORD: str = Field("LWAdW5MjYtL5", validation_alias="APP_PASSWORD")
     MAIL_FROM: str = Field("orders@prashayan.com", validation_alias="MAIL_FROM")
-    MAIL_PORT: int = Field(587, validation_alias="PORT")
+    MAIL_PORT: int = Field(465, validation_alias="PORT")
     MAIL_SERVER: str = Field("smtppro.zoho.in", validation_alias="Outgoing_Server_Name")
-    MAIL_TLS: bool = Field(True, validation_alias="MAIL_TLS")
-    MAIL_SSL: bool = Field(False, validation_alias="MAIL_SSL")
+    MAIL_TLS: bool = Field(False, validation_alias="MAIL_TLS")
+    MAIL_SSL: bool = Field(True, validation_alias="MAIL_SSL")
 
     # AWS S3
     AWS_ACCESS_KEY_ID: str = ""

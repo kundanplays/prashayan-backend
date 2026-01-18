@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from typing import Annotated, Optional
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from datetime import timedelta
 from sqlmodel import Session, select
 from app.db.session import get_session
 from app.models.user import User
@@ -51,7 +52,8 @@ def login_for_access_token(
     request: Request,
     form_data: OAuth2PasswordRequestForm = Depends(),
     service: AuthService = Depends(get_auth_service),
-    history_service: HistoryService = Depends(get_history_service)
+    history_service: HistoryService = Depends(get_history_service),
+    session: Session = Depends(get_session)
 ):
     user, error_message = service.authenticate_user(form_data.username, form_data.password)
     if not user:
@@ -68,9 +70,23 @@ def login_for_access_token(
         user_agent=request.headers.get("user-agent")
     )
 
-    access_token_expires = service.create_access_token(
-        data={"sub": user.email}
-    )
+    # Check if user is admin - if so, never expire token
+    from sqlmodel import select
+    from app.models.admin_user import AdminUser
+    admin_user = session.exec(select(AdminUser).where(AdminUser.user_id == user.id)).first()
+
+    if admin_user and admin_user.is_active:
+        # Admin users get tokens that never expire (100 years)
+        access_token_expires = service.create_access_token(
+            data={"sub": user.email},
+            expires_delta=timedelta(days=365*100)  # 100 years
+        )
+    else:
+        # Regular users get normal expiration (7 days from config)
+        access_token_expires = service.create_access_token(
+            data={"sub": user.email}
+        )
+
     return {"access_token": access_token_expires, "token_type": "bearer"}
 
 @router.post("/otp/generate")

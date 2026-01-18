@@ -50,14 +50,15 @@ def seed_products():
                 name="Ashwagandha Vitality",
                 slug="ashwagandha-vitality",
                 description="Organic Ashwagandha root extract to reduce stress, improve sleep, and increase muscle strength.",
+                introductory_description="Experience the holistic power of Ayurveda. Regular usage supports physical vitality, mental clarity, and emotional well-being.",
                 mrp=1199.00,
                 selling_price=899.00,
                 stock_quantity=200,
                 image_urls=["products/ashwagandha.webp"],
                 thumbnail_url="products/ashwagandha.webp",
-                ingredients="Organic Ashwagandha Root Extract (Withania somnifera)",
+                ingredients="Organic Ashwagandha Root Extract, Withania somnifera, Natural adaptogenic herbs",
                 benefits="Reduces stress and anxiety, improves sleep quality, increases muscle strength, balances hormones",
-                how_to_use="Take 1-2 capsules daily with water, preferably before bedtime.",
+                how_to_use="Take 1-2 capsules daily with water, Consume preferably before bedtime, Continue for 8-12 weeks for optimal results",
                 is_active=True
             ),
             Product(
@@ -71,7 +72,7 @@ def seed_products():
                 thumbnail_url="products/triphala.webp",
                 ingredients="Amalaki (Emblica officinalis), Bibhitaki (Terminalia bellirica), Haritaki (Terminalia chebula)",
                 benefits="Improves digestion, natural detoxification, supports weight management, enhances nutrient absorption",
-                how_to_use="Mix 1 teaspoon with warm water and consume before bedtime or early morning on an empty stomach.",
+                how_to_use="Mix 1 teaspoon with warm water, Consume before bedtime or early morning, Take on an empty stomach for best results",
                 is_active=True
             ),
             Product(

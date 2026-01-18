@@ -1,6 +1,7 @@
 from typing import Optional
 from datetime import datetime
-from sqlmodel import Field, SQLModel
+from sqlmodel import Field, SQLModel, Column
+from sqlalchemy import Enum as SAEnum
 from enum import Enum
 
 class PaymentMethod(str, Enum):
@@ -30,7 +31,10 @@ class Payment(SQLModel, table=True):
     # Payment Details
     amount: float
     payment_method: PaymentMethod
-    payment_status: PaymentStatus = Field(default=PaymentStatus.PENDING)
+    payment_status: PaymentStatus = Field(
+        default=PaymentStatus.PENDING,
+        sa_column=Column(SAEnum(PaymentStatus, values_callable=lambda x: [e.value for e in x]))
+    )
     
     # Metadata
     error_message: Optional[str] = None  # For failed payments

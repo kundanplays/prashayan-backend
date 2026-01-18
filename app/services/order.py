@@ -2,11 +2,12 @@ from typing import List, Optional
 from datetime import datetime
 from sqlmodel import Session, select
 from fastapi import HTTPException
-from app.models.order import Order, OrderItem, OrderStatus
+from app.models.order import Order, OrderItem, OrderStatus, PaymentStatus as OrderPaymentStatus, PaymentType as OrderPaymentType
 from app.services.email import format_address_for_email
 from app.models.product import Product
 from app.models.user import User
 from app.models.coupon import Coupon, CouponUsage, CouponType
+from app.models.payment import Payment, PaymentMethod, PaymentStatus as PaymentRecordStatus
 from app.services.email import send_order_success_email, send_shipping_notification_email, send_delivery_feedback_email, send_order_cancellation_email
 
 class OrderService:
@@ -102,13 +103,17 @@ class OrderService:
         final_amount, discount_amount, coupon = self.validate_and_apply_coupon(coupon_code, user_id, calculated_total)
 
         # Create Order with calculated amounts
+        normalized_payment_method = payment_method.lower() if payment_method else "cod"
+        order_payment_type = OrderPaymentType.ONLINE if normalized_payment_method == "online" else OrderPaymentType.COD
+        order_payment_status = OrderPaymentStatus.PENDING if normalized_payment_method == "online" else OrderPaymentStatus.UNPAID
+
         order = Order(
             user_id=user_id,
             total_amount=calculated_total,
             discount_amount=discount_amount,
             final_amount=final_amount,
-            payment_type=payment_method,
-            payment_status="paid" if payment_method == "online" else "unpaid",
+            payment_type=order_payment_type,
+            payment_status=order_payment_status,
             order_status=OrderStatus.PLACED,
             coupon_code=coupon_code.upper() if coupon_code else None,
             shipping_address={
@@ -126,6 +131,21 @@ class OrderService:
         self.session.add(order)
         self.session.commit()
         self.session.refresh(order)
+
+        # Set order number after getting the ID
+        order.order_number = f"PR{order.id:06d}"
+        self.session.add(order)
+        self.session.commit()
+
+        # Create Payment record for online payments
+        if normalized_payment_method == "online":
+            payment_record = Payment(
+                order_id=order.id,
+                amount=final_amount,
+                payment_method=PaymentMethod.RAZORPAY,
+                payment_status=PaymentRecordStatus.PENDING  # Will be updated via webhook
+            )
+            self.session.add(payment_record)
 
         # Create Order Items with order_id
         for order_item in order_items:
@@ -169,51 +189,7 @@ class OrderService:
 
             self.session.commit()
 
-        # Send order confirmation email
-        try:
-            # Get user details
-            user = self.session.get(User, user_id)
-            if user:
-                # Get product details for email
-                product_details = []
-                for item in items_data:
-                    product = self.session.get(Product, item["product_id"])
-                    if product:
-                        product_details.append({
-                            'id': product.id,
-                            'name': product.name,
-                            'selling_price': getattr(product, 'selling_price', None) or product.mrp,
-                            'mrp': product.mrp
-                        })
-
-                # Format order items for email
-                order_items_for_email = [
-                    {'product_id': item['product_id'], 'quantity': item['quantity']}
-                    for item in items_data
-                ]
-
-                # Format delivery address
-                delivery_address = format_address_for_email(shipping_address)
-
-                # Send order success email
-                order_date = order.created_at.strftime("%B %d, %Y at %I:%M %p")
-                send_order_success_email(
-                    to_email=shipping_address.email,
-                    user_name=user.name,
-                    order_id=order.id,
-                    order_date=order_date,
-                    order_items=order_items_for_email,
-                    product_details=product_details,
-                    subtotal=order.total_amount,
-                    shipping=0.0,  # You can modify this based on your shipping logic
-                    total_amount=order.total_amount,
-                    delivery_address=delivery_address,
-                    payment_method=payment_method
-                )
-
-        except Exception as e:
-            print(f"Failed to send order confirmation email: {e}")
-            # Don't fail the order creation if email fails
+        # Note: Order confirmation email will be sent after successful payment via webhook
 
         return order
 
@@ -238,7 +214,7 @@ class OrderService:
         # In a strict system, we'd check valid transitions here.
         # e.g. if order.status == OrderStatus.DELIVERED and new_status == OrderStatus.SHIPPED: fail
 
-        order.status = new_status
+        order.order_status = new_status
         order.updated_at = datetime.utcnow()
         if tracking_id:
             order.tracking_id = tracking_id

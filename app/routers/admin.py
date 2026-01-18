@@ -7,8 +7,8 @@ import json
 from app.db.session import get_session
 from app.models.user import User
 from app.models.product import Product
-from app.models.order import Order, OrderItem
-from app.models.payment import Payment
+from app.models.order import Order, OrderItem, PaymentStatus as OrderPaymentStatus
+from app.models.payment import Payment, PaymentStatus as PaymentRecordStatus
 from app.models.review import Review
 from app.models.blog import Blog
 from app.models.admin_user import AdminUser, AdminRole
@@ -126,7 +126,7 @@ def get_dashboard_stats(
 
     # Get pending payments
     pending_payments = session.exec(
-        select(func.count(Payment.id)).where(Payment.payment_status == "pending")
+        select(func.count(Payment.id)).where(Payment.payment_status == PaymentRecordStatus.PENDING)
     ).first() or 0
 
     # Calculate monthly revenue
@@ -463,6 +463,7 @@ def get_product(
 async def create_product(
     name: str = Form(...),
     description: str = Form(...),
+    introductory_description: str = Form(None),
     mrp: float = Form(...),
     selling_price: float = Form(...),
     stock_quantity: int = Form(...),
@@ -472,7 +473,9 @@ async def create_product(
     how_to_use: str = Form(None),
     category: str = Form(None),
     is_active: bool = Form(True),
-    image: UploadFile = File(None),
+    images: List[UploadFile] = File(None),
+    thumbnail_url: Optional[str] = Form(None),
+    image_urls: Optional[str] = Form(None), # JSON string
     current_user: User = Depends(get_current_user),
     admin_user: AdminUser = Depends(get_admin_user),
     session: Session = Depends(get_session)
@@ -482,14 +485,38 @@ async def create_product(
         raise HTTPException(status_code=403, detail="Insufficient permissions")
 
     # Handle Image Upload
-    thumbnail_url = None
-    if image:
-        if not image.content_type.startswith('image/'):
-            raise HTTPException(status_code=400, detail="File must be an image")
-        content = await image.read()
-        s3_key = s3_service.upload_file(content, f"product-{image.filename}", image.content_type)
-        if s3_key:
-            thumbnail_url = s3_service.get_public_url(s3_key)
+    final_thumbnail_url = thumbnail_url
+
+    # Parse image_urls
+    final_image_urls = []
+    if image_urls:
+        try:
+            final_image_urls = json.loads(image_urls)
+            if not isinstance(final_image_urls, list):
+                final_image_urls = []
+        except:
+            pass
+
+    if images:
+        uploaded_urls = []
+        for image in images:
+            if not image.content_type.startswith('image/'):
+                raise HTTPException(status_code=400, detail="All files must be images")
+            content = await image.read()
+            s3_key = s3_service.upload_file(content, f"product-{image.filename}", image.content_type)
+            if s3_key:
+                uploaded_url = s3_service.get_public_url(s3_key)
+                uploaded_urls.append(uploaded_url)
+
+        # Put new images first, then existing images
+        final_image_urls = uploaded_urls + final_image_urls
+        # Set first new image as thumbnail if not already set
+        if not final_thumbnail_url and uploaded_urls:
+            final_thumbnail_url = uploaded_urls[0]
+
+    # Ensure thumbnail_url is in image_urls
+    if final_thumbnail_url and final_thumbnail_url not in final_image_urls:
+        final_image_urls.insert(0, final_thumbnail_url)
 
     # Generate slug if not provided
     if not slug:
@@ -499,6 +526,7 @@ async def create_product(
         name=name,
         slug=slug,
         description=description,
+        introductory_description=introductory_description,
         mrp=mrp,
         selling_price=selling_price,
         stock_quantity=stock_quantity,
@@ -506,7 +534,8 @@ async def create_product(
         benefits=benefits,
         how_to_use=how_to_use,
         category=category,
-        thumbnail_url=thumbnail_url,
+        thumbnail_url=final_thumbnail_url,
+        image_urls=final_image_urls,
         is_active=is_active
     )
     
@@ -521,6 +550,7 @@ async def update_product(
     product_id: int,
     name: str = Form(None),
     description: str = Form(None),
+    introductory_description: str = Form(None),
     mrp: float = Form(None),
     selling_price: float = Form(None),
     stock_quantity: int = Form(None),
@@ -529,7 +559,9 @@ async def update_product(
     how_to_use: str = Form(None),
     category: str = Form(None),
     is_active: bool = Form(None),
-    image: UploadFile = File(None),
+    images: List[UploadFile] = File(None),
+    thumbnail_url: Optional[str] = Form(None),
+    image_urls: Optional[str] = Form(None), # JSON string
     current_user: User = Depends(get_current_user),
     admin_user: AdminUser = Depends(get_admin_user),
     session: Session = Depends(get_session)
@@ -544,6 +576,7 @@ async def update_product(
 
     if name is not None: product.name = name
     if description is not None: product.description = description
+    if introductory_description is not None: product.introductory_description = introductory_description
     if mrp is not None: product.mrp = mrp
     if selling_price is not None: product.selling_price = selling_price
     if stock_quantity is not None: product.stock_quantity = stock_quantity
@@ -552,15 +585,45 @@ async def update_product(
     if how_to_use is not None: product.how_to_use = how_to_use
     if category is not None: product.category = category
     if is_active is not None: product.is_active = is_active
+    
+    # Handle explicit URL updates
+    if thumbnail_url is not None:
+        product.thumbnail_url = thumbnail_url
 
     # Handle Image Update
-    if image:
-        if not image.content_type.startswith('image/'):
-            raise HTTPException(status_code=400, detail="File must be an image")
-        content = await image.read()
-        s3_key = s3_service.upload_file(content, f"product-{image.filename}", image.content_type)
-        if s3_key:
-            product.thumbnail_url = s3_service.get_public_url(s3_key)
+    final_image_urls = []
+    if image_urls is not None:
+        try:
+            urls = json.loads(image_urls)
+            if isinstance(urls, list):
+                final_image_urls = urls
+        except:
+            pass
+
+    # Handle new image uploads
+    if images:
+        new_image_urls = []
+        for image in images:
+            if not image.content_type.startswith('image/'):
+                raise HTTPException(status_code=400, detail="All files must be images")
+            content = await image.read()
+            s3_key = s3_service.upload_file(content, f"product-{image.filename}", image.content_type)
+            if s3_key:
+                url = s3_service.get_public_url(s3_key)
+                new_image_urls.append(url)
+
+        # Combine existing URLs with new uploaded URLs (new images first for thumbnail)
+        final_image_urls = new_image_urls + final_image_urls
+
+    # Update image_urls if any changes were made
+    if image_urls is not None or images:
+        product.image_urls = final_image_urls
+
+        # Update thumbnail: use first image from final_image_urls, or clear if no images
+        if final_image_urls:
+            product.thumbnail_url = final_image_urls[0]
+        else:
+            product.thumbnail_url = None
 
     product.updated_at = datetime.utcnow()
     session.add(product)
@@ -711,7 +774,7 @@ def verify_order_payment(
         raise HTTPException(status_code=404, detail="Order not found")
 
     # Update payment status
-    order.payment_status = "paid"
+    order.payment_status = OrderPaymentStatus.PAID
     order.updated_at = datetime.utcnow()
     
     # You might want to store the razorpay_payment_id somewhere too if not already
@@ -1137,7 +1200,7 @@ def get_payments(
     query = select(Payment)
 
     if status:
-        query = query.where(Payment.payment_status == status)
+        query = query.where(Payment.payment_status == PaymentRecordStatus(status))
 
     # Get total count
     total_query = query.with_only_columns(func.count(Payment.id))
@@ -1187,7 +1250,7 @@ def verify_payment(
     if not payment:
         raise HTTPException(status_code=404, detail="Payment not found")
 
-    payment.payment_status = "success"
+    payment.payment_status = PaymentRecordStatus.SUCCESS
     payment.updated_at = datetime.utcnow()
     session.add(payment)
     session.commit()
@@ -1213,7 +1276,7 @@ def refund_payment(
 
     # In a real app, call Payment Gateway API here
     
-    payment.payment_status = "refunded"
+    payment.payment_status = PaymentRecordStatus.REFUNDED
     payment.updated_at = datetime.utcnow()
     session.add(payment)
     session.commit()

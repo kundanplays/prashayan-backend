@@ -1,9 +1,10 @@
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Header
 from sqlmodel import Session, select
 from app.db.session import get_session
 from app.models.order import Order, OrderStatus
 from app.models.user import User
+from app.models.payment import Payment
 from app.routers.auth import get_current_user, get_current_user_optional
 from app.services.order import OrderService
 from pydantic import BaseModel
@@ -47,6 +48,18 @@ def create_order(
         existing_user = service.session.exec(select(User).where(User.email == order_in.shipping_address.email)).first()
         if existing_user:
             user_id = existing_user.id
+            # Update existing user's address/phone from the order
+            existing_user.address = {
+                "address": order_in.shipping_address.address,
+                "city": order_in.shipping_address.city,
+                "state": order_in.shipping_address.state,
+                "pincode": order_in.shipping_address.pincode
+            }
+            existing_user.phone = order_in.shipping_address.phone
+            existing_user.name = order_in.shipping_address.full_name
+            service.session.add(existing_user)
+            service.session.commit()
+            service.session.refresh(existing_user)
         else:
             # Create new guest user
             new_user = User(
@@ -109,7 +122,9 @@ def get_order(
         items_with_details.append({
             "id": item.product_id,
             "name": product.name if product else "Unknown Product",
+            "slug": product.slug if product else None,
             "image": product.image_url if product else None,
+            "images": product.full_image_urls if product else [],
             "price": item.price_at_purchase,
             "quantity": item.quantity
         })
@@ -147,3 +162,84 @@ def update_order_status(
         raise HTTPException(status_code=403, detail="Not authorized")
     
     return service.update_status(id, status, tracking_id)
+
+@router.get("/track/{order_number}")
+def track_order(
+    order_number: str,
+    session: Session = Depends(get_session),
+    current_user: Optional[User] = Depends(get_current_user_optional),
+    x_user_email: Optional[str] = Header(None, alias="X-User-Email")
+):
+    """Track order by order number (e.g., PR000046)"""
+    normalized_order_number = order_number.strip().upper()
+    # Find order by order number (case-insensitive)
+    order = session.exec(
+        select(Order).where(Order.order_number == normalized_order_number)
+    ).first()
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+
+    # Check permissions - allow if guest (no login) or matches user or is admin
+    if current_user and order.user_id != current_user.id and not current_user.is_superuser:
+        raise HTTPException(status_code=403, detail="Not authorized")
+
+    # For guest users, verify email matches
+    if not current_user and x_user_email:
+        shipping_email = order.shipping_address.get("email")
+        if shipping_email != x_user_email:
+            raise HTTPException(status_code=403, detail="Email does not match order")
+
+    # Get order items with product details
+    items_with_details = []
+    for item in order.items:
+        product = session.get(Product, item.product_id)
+        items_with_details.append({
+            "id": item.product_id,
+            "name": product.name if product else "Unknown Product",
+            "slug": product.slug if product else None,
+            "image": product.image_url if product else None,
+            "images": product.full_image_urls if product else [],
+            "price": item.price_at_purchase,
+            "quantity": item.quantity,
+            "total": item.price_at_purchase * item.quantity
+        })
+
+    # Get payment/transaction details
+    payments = session.exec(select(Payment).where(Payment.order_id == order.id)).all()
+    payment_details = []
+    for payment in payments:
+        payment_details.append({
+            "id": payment.id,
+            "payment_id": payment.payment_id,
+            "razorpay_order_id": payment.razorpay_order_id,
+            "razorpay_signature": payment.razorpay_signature,
+            "amount": payment.amount,
+            "method": payment.payment_method.value,
+            "status": payment.payment_status.value,
+            "created_at": payment.created_at.isoformat(),
+            "updated_at": payment.updated_at.isoformat() if payment.updated_at else None
+        })
+
+    return {
+        "orderId": order.id,
+        "order_number": order.order_number,
+        "items": items_with_details,
+        "total": order.final_amount,
+        "subtotal": order.total_amount,
+        "discount": order.discount_amount,
+        "customer": {
+            "fullName": order.shipping_address.get("full_name"),
+            "email": order.shipping_address.get("email"),
+            "phone": order.shipping_address.get("phone"),
+            "address": order.shipping_address.get("address"),
+            "city": order.shipping_address.get("city"),
+            "state": order.shipping_address.get("state"),
+            "pincode": order.shipping_address.get("pincode"),
+        },
+        "status": order.order_status.value,
+        "payment_status": order.payment_status.value,
+        "payment_method": order.payment_type.value,
+        "date": order.created_at.isoformat(),
+        "tracking_id": order.tracking_id,
+        "payments": payment_details
+    }

@@ -24,17 +24,14 @@ def send_email(to_email: str, subject: str, body: str, embed_logo: bool = True):
                     logo.add_header('Content-Disposition', 'inline')
                     msg.attach(logo)
             except FileNotFoundError:
-                print("Warning: logo.png not found, sending email without logo")
+                pass  # Send without logo if not found
 
         if settings.MAIL_SSL:
-            print(f"Connecting to {settings.MAIL_SERVER}:{settings.MAIL_PORT} via SSL...")
             server = smtplib.SMTP_SSL(settings.MAIL_SERVER, settings.MAIL_PORT)
         else:
-            print(f"Connecting to {settings.MAIL_SERVER}:{settings.MAIL_PORT} via TLS...")
             server = smtplib.SMTP(settings.MAIL_SERVER, settings.MAIL_PORT)
             server.starttls()
 
-        print(f"Logging in as {settings.MAIL_USERNAME}...")
         server.login(settings.MAIL_USERNAME, settings.MAIL_PASSWORD)
         text = msg.as_string()
         server.sendmail(settings.MAIL_FROM, to_email, text)

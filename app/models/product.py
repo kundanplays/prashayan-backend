@@ -19,6 +19,7 @@ class Product(SQLModel, table=True):
     # Detailed Product Info
     ingredients: Optional[str] = None
     description: str
+    introductory_description: Optional[str] = None
     category: Optional[str] = Field(default=None, index=True)
     benefits: Optional[str] = None
     how_to_use: Optional[str] = None

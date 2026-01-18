@@ -1,7 +1,7 @@
 from typing import List, Optional
 from datetime import datetime
 from sqlmodel import Field, Relationship, SQLModel, Column
-from sqlalchemy import JSON
+from sqlalchemy import JSON, Enum as SAEnum
 from enum import Enum
 from pydantic import computed_field
 
@@ -33,16 +33,13 @@ class Order(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     user_id: int = Field(foreign_key="user.id")
 
+    # Order number stored in database (e.g., PR000014)
+    order_number: str = Field(default="")
+
     @computed_field
     @property
     def order_id(self) -> Optional[int]:
         return self.id
-
-    @computed_field
-    @property
-    def order_number(self) -> Optional[str]:
-        """Formatted order number for display (e.g., PR000014)"""
-        return f"PR{self.id:06d}" if self.id else None
     
     # Order Details
     total_amount: float
@@ -51,7 +48,10 @@ class Order(SQLModel, table=True):
     
     # Payment Info
     payment_type: PaymentType = Field(default=PaymentType.ONLINE)
-    payment_status: PaymentStatus = Field(default=PaymentStatus.UNPAID)
+    payment_status: PaymentStatus = Field(
+        default=PaymentStatus.UNPAID,
+        sa_column=Column(SAEnum(PaymentStatus, values_callable=lambda x: [e.value for e in x]))
+    )
     
     # Order Status
     order_status: OrderStatus = Field(default=OrderStatus.PLACED)
